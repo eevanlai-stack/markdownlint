@@ -22,7 +22,9 @@ import * as constants from "../lib/constants.mjs";
 import rules from "../lib/rules.mjs";
 import customRules from "./rules/rules.cjs";
 import { __dirname, importWithTypeJson } from "./esm-helpers.mjs";
+/** @type {{exports: Object.<string, string>, homepage: string, version: string}} */
 const packageJson = await importWithTypeJson(import.meta, "../package.json");
+/** @type {{$id: string, properties: Object<string, any>}} */
 const configSchema = await importWithTypeJson(import.meta, "../schema/markdownlint-config-schema.json");
 const configSchemaStrict = await importWithTypeJson(import.meta, "../schema/markdownlint-config-schema-strict.json");
 
@@ -30,6 +32,10 @@ const deprecatedRuleNames = new Set(constants.deprecatedRuleNames);
 const ajvOptions = {
   "allowUnionTypes": true
 };
+
+/** @typedef {import("ava").ImplementationFn<[]>} ImplementationFn */
+/** @typedef {import("markdownlint").Configuration} Configuration */
+/** @typedef {import("markdownlint").LintResults} LintResults */
 
 /**
  * Gets an instance of a markdown-it factory, suitable for use with options.markdownItFactory.
@@ -140,90 +146,98 @@ test("inputOnlyNewline", (t) => new Promise((resolve) => {
   });
 }));
 
-test("defaultTrue", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "default": true
-    },
-    "noInlineConfig": true,
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD018": [ 1 ],
-        "MD019": [ 3, 5 ],
-        "MD041": [ 1 ]
-      },
-      "./test/first_heading_bad_atx.md": {
-        "MD041": [ 1 ]
-      }
-    };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+/** @typedef {Object<string, string[]>} NormalizedLintResults */
 
-test("defaultFalse", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "default": false
-    },
-    "noInlineConfig": true,
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {},
-      "./test/first_heading_bad_atx.md": {}
-    };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+/**
+ * Normalizes LintResults.
+ *
+ * @param {LintResults} results LintResults.
+ * @returns {NormalizedLintResults} Normalized LintResults.
+ */
+function normalizeLintResults(results) {
+  return Object.fromEntries(
+    Object.entries(results).map(
+      ([ source, errors ]) => [
+        source, errors.map(
+          ({ lineNumber, ruleNames }) => `${ruleNames[0]} ${lineNumber}`
+        )
+      ]
+    )
+  );
+}
 
-test("defaultUndefined", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {},
-    "noInlineConfig": true,
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD018": [ 1 ],
-        "MD019": [ 3, 5 ],
-        "MD041": [ 1 ]
-      },
-      "./test/first_heading_bad_atx.md": {
-        "MD041": [ 1 ]
-      }
+/**
+ * Gets a Configuration default value test implementation.
+ *
+ * @param {(config: Configuration) => void} setDefault Sets the value of the Configuration default value.
+ * @param {NormalizedLintResults} expected Expected result.
+ * @returns {ImplementationFn} Test implementation.
+ */
+function getConfigDefaultTestImplementation(setDefault, expected) {
+  return async(t) => {
+    t.plan(1);
+    const options = {
+      "files": [
+        "./test/atx_heading_spacing.md",
+        "./test/first_heading_bad_atx.md"
+      ],
+      "config": {},
+      "noInlineConfig": true
     };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+    setDefault(options.config);
+    const actual = await lintPromise(options);
+    t.deepEqual(normalizeLintResults(actual), expected);
+  };
+}
+
+const configDefaultTestExpectedEnabled = {
+  "./test/atx_heading_spacing.md": [
+    "MD018 1",
+    "MD019 3",
+    "MD019 5",
+    "MD041 1"
+  ],
+  "./test/first_heading_bad_atx.md": [
+    "MD041 1"
+  ]
+};
+
+const configDefaultTestExpectedDisabled = {
+  "./test/atx_heading_spacing.md": [],
+  "./test/first_heading_bad_atx.md": []
+};
+
+test("defaultTrue", getConfigDefaultTestImplementation(
+  (config) => (config.default = true),
+  configDefaultTestExpectedEnabled
+));
+
+test("defaultFalse", getConfigDefaultTestImplementation(
+  (config) => (config.default = false),
+  configDefaultTestExpectedDisabled
+));
+
+test("defaultError", getConfigDefaultTestImplementation(
+  (config) => (config.default = "error"),
+  configDefaultTestExpectedEnabled
+));
+
+test("defaultWarning", getConfigDefaultTestImplementation(
+  // @ts-ignore
+  (config) => (config.default = "warning"),
+  configDefaultTestExpectedEnabled
+));
+
+test("defaultOff", getConfigDefaultTestImplementation(
+  // @ts-ignore
+  (config) => (config.default = "off"),
+  configDefaultTestExpectedEnabled
+));
+
+test("defaultUnset", getConfigDefaultTestImplementation(
+  () => {},
+  configDefaultTestExpectedEnabled
+));
 
 test("disableRules", (t) => new Promise((resolve) => {
   t.plan(2);
@@ -802,6 +816,7 @@ test("customFileSystemSync", (t) => {
   t.plan(2);
   const file = "/dir/file.md";
   const fsApi = {
+    // @ts-ignore
     "readFileSync": (p) => {
       t.is(p, file);
       return "# Heading";
@@ -818,6 +833,7 @@ test("customFileSystemAsync", (t) => new Promise((resolve) => {
   t.plan(3);
   const file = "/dir/file.md";
   const fsApi = {
+    // @ts-ignore
     "readFile": (p, o, cb) => {
       t.is(p, file);
       cb(null, "# Heading");
@@ -836,6 +852,7 @@ test("customFileSystemAsync", (t) => new Promise((resolve) => {
 
 test("readme", async(t) => {
   t.plan(132);
+  /** @type {Object.<string, string[]>} */
   const tagToRules = {};
   for (const rule of rules) {
     for (const tag of rule.tags) {
@@ -894,7 +911,7 @@ test("readme", async(t) => {
       } else if (inTags) {
         const parts =
           token.content.replace(/[`*]/g, "").split(/ - |, |,\n/);
-        const tag = parts.shift();
+        const tag = parts.shift() || "";
         t.deepEqual(parts, tagToRules[tag] || [],
           "Rule mismatch for tag " + tag + ".");
         delete tagToRules[tag];
@@ -1248,6 +1265,7 @@ test("token-map-spans", (t) => {
         "tags": [ "tms" ],
         "parser": "markdownit",
         "function": function tokenMapSpans(params) {
+          /** @type {number[]} */
           const tokenLines = [];
           let lastLineNumber = -1;
           const inlines = params.parsers.markdownit.tokens.filter(
