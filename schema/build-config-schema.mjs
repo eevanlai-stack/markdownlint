@@ -652,7 +652,10 @@ for (const rule of rules) {
 for (const [ tag, tagTags ] of Object.entries(tags)) {
   const scheme = {
     "description": `${tag} : ${tagTags.join(", ")}`,
-    "type": "boolean",
+    "oneOf": [
+      { "type": "boolean" },
+      { "enum": [ "error" ] }
+    ],
     "default": true
   };
   schema.properties[tag] = scheme;

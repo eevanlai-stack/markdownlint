@@ -1281,97 +1281,97 @@ export interface ConfigurationStrict {
   /**
    * headings : MD001, MD003, MD018, MD019, MD020, MD021, MD022, MD023, MD024, MD025, MD026, MD036, MD041, MD043
    */
-  headings?: boolean;
+  headings?: boolean | "error";
   /**
    * bullet : MD004, MD005, MD007, MD032
    */
-  bullet?: boolean;
+  bullet?: boolean | "error";
   /**
    * ul : MD004, MD005, MD007, MD030, MD032
    */
-  ul?: boolean;
+  ul?: boolean | "error";
   /**
    * indentation : MD005, MD007, MD027
    */
-  indentation?: boolean;
+  indentation?: boolean | "error";
   /**
    * whitespace : MD009, MD010, MD012, MD027, MD028, MD030, MD037, MD038, MD039
    */
-  whitespace?: boolean;
+  whitespace?: boolean | "error";
   /**
    * hard_tab : MD010
    */
-  hard_tab?: boolean;
+  hard_tab?: boolean | "error";
   /**
    * links : MD011, MD034, MD039, MD042, MD051, MD052, MD053, MD054, MD059
    */
-  links?: boolean;
+  links?: boolean | "error";
   /**
    * blank_lines : MD012, MD022, MD031, MD032, MD047
    */
-  blank_lines?: boolean;
+  blank_lines?: boolean | "error";
   /**
    * line_length : MD013
    */
-  line_length?: boolean;
+  line_length?: boolean | "error";
   /**
    * code : MD014, MD031, MD038, MD040, MD046, MD048
    */
-  code?: boolean;
+  code?: boolean | "error";
   /**
    * atx : MD018, MD019
    */
-  atx?: boolean;
+  atx?: boolean | "error";
   /**
    * spaces : MD018, MD019, MD020, MD021, MD023
    */
-  spaces?: boolean;
+  spaces?: boolean | "error";
   /**
    * atx_closed : MD020, MD021
    */
-  atx_closed?: boolean;
+  atx_closed?: boolean | "error";
   /**
    * blockquote : MD027, MD028
    */
-  blockquote?: boolean;
+  blockquote?: boolean | "error";
   /**
    * ol : MD029, MD030, MD032
    */
-  ol?: boolean;
+  ol?: boolean | "error";
   /**
    * html : MD033
    */
-  html?: boolean;
+  html?: boolean | "error";
   /**
    * url : MD034
    */
-  url?: boolean;
+  url?: boolean | "error";
   /**
    * hr : MD035
    */
-  hr?: boolean;
+  hr?: boolean | "error";
   /**
    * emphasis : MD036, MD037, MD049, MD050
    */
-  emphasis?: boolean;
+  emphasis?: boolean | "error";
   /**
    * language : MD040
    */
-  language?: boolean;
+  language?: boolean | "error";
   /**
    * spelling : MD044
    */
-  spelling?: boolean;
+  spelling?: boolean | "error";
   /**
    * accessibility : MD045, MD059
    */
-  accessibility?: boolean;
+  accessibility?: boolean | "error";
   /**
    * images : MD045, MD052, MD053, MD054
    */
-  images?: boolean;
+  images?: boolean | "error";
   /**
    * table : MD055, MD056, MD058, MD060
    */
-  table?: boolean;
+  table?: boolean | "error";
 }

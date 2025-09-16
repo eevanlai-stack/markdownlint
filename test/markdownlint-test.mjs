@@ -159,7 +159,7 @@ function normalizeLintResults(results) {
     Object.entries(results).map(
       ([ source, errors ]) => [
         source, errors.map(
-          ({ lineNumber, ruleNames }) => `${ruleNames[0]} ${lineNumber}`
+          ({ lineNumber, ruleNames, severity }) => `${ruleNames[0]} ${lineNumber} ${severity}`
         )
       ]
     )
@@ -167,257 +167,273 @@ function normalizeLintResults(results) {
 }
 
 /**
- * Gets a Configuration default value test implementation.
+ * Gets a Configuration value test implementation.
  *
- * @param {(config: Configuration) => void} setDefault Sets the value of the Configuration default value.
+ * @param {Configuration} config Configuration object.
+ * @param {string[]} files List of files.
  * @param {NormalizedLintResults} expected Expected result.
  * @returns {ImplementationFn} Test implementation.
  */
-function getConfigDefaultTestImplementation(setDefault, expected) {
+function getConfigTestImplementation(config, files, expected) {
   return async(t) => {
     t.plan(1);
     const options = {
-      "files": [
-        "./test/atx_heading_spacing.md",
-        "./test/first_heading_bad_atx.md"
-      ],
-      "config": {},
+      config,
+      files,
       "noInlineConfig": true
     };
-    setDefault(options.config);
     const actual = await lintPromise(options);
     t.deepEqual(normalizeLintResults(actual), expected);
   };
 }
 
-const configDefaultTestExpectedEnabled = {
-  "./test/atx_heading_spacing.md": [
-    "MD018 1",
-    "MD019 3",
-    "MD019 5",
-    "MD041 1"
-  ],
-  "./test/first_heading_bad_atx.md": [
-    "MD041 1"
-  ]
-};
-
-const configDefaultTestExpectedDisabled = {
+const configTestFiles = [
+  "./test/atx_heading_spacing.md",
+  "./test/first_heading_bad_atx.md"
+];
+const configTestExpected = {
   "./test/atx_heading_spacing.md": [],
   "./test/first_heading_bad_atx.md": []
 };
+const configTestExpected1 = {
+  "./test/atx_heading_spacing.md": [
+    "MD018 1 error"
+  ],
+  "./test/first_heading_bad_atx.md": []
+};
+const configTestExpected11 = {
+  "./test/atx_heading_spacing.md": [
+    "MD041 1 error"
+  ],
+  "./test/first_heading_bad_atx.md": [
+    "MD041 1 error"
+  ]
+};
+const configTestExpected135 = {
+  "./test/atx_heading_spacing.md": [
+    "MD018 1 error",
+    "MD019 3 error",
+    "MD019 5 error"
+  ],
+  "./test/first_heading_bad_atx.md": []
+};
+const configTestExpected3511 = {
+  "./test/atx_heading_spacing.md": [
+    "MD019 3 error",
+    "MD019 5 error",
+    "MD041 1 error"
+  ],
+  "./test/first_heading_bad_atx.md": [
+    "MD041 1 error"
+  ]
+};
+const configTestExpected13511 = {
+  "./test/atx_heading_spacing.md": [
+    "MD018 1 error",
+    "MD019 3 error",
+    "MD019 5 error",
+    "MD041 1 error"
+  ],
+  "./test/first_heading_bad_atx.md": [
+    "MD041 1 error"
+  ]
+};
 
-test("defaultTrue", getConfigDefaultTestImplementation(
-  (config) => (config.default = true),
-  configDefaultTestExpectedEnabled
+test("defaultUnset", getConfigTestImplementation(
+  {},
+  configTestFiles,
+  configTestExpected13511
 ));
 
-test("defaultFalse", getConfigDefaultTestImplementation(
-  (config) => (config.default = false),
-  configDefaultTestExpectedDisabled
+test("defaultTrue", getConfigTestImplementation(
+  { "default": true },
+  configTestFiles,
+  configTestExpected13511
 ));
 
-test("defaultError", getConfigDefaultTestImplementation(
-  (config) => (config.default = "error"),
-  configDefaultTestExpectedEnabled
+test("defaultFalse", getConfigTestImplementation(
+  { "default": false },
+  configTestFiles,
+  configTestExpected
 ));
 
-test("defaultWarning", getConfigDefaultTestImplementation(
+test("defaultTruthy", getConfigTestImplementation(
   // @ts-ignore
-  (config) => (config.default = "warning"),
-  configDefaultTestExpectedEnabled
+  { "default": 1 },
+  configTestFiles,
+  configTestExpected13511
 ));
 
-test("defaultOff", getConfigDefaultTestImplementation(
+test("defaultFalsy", getConfigTestImplementation(
   // @ts-ignore
-  (config) => (config.default = "off"),
-  configDefaultTestExpectedEnabled
+  { "default": 0 },
+  configTestFiles,
+  configTestExpected
 ));
 
-test("defaultUnset", getConfigDefaultTestImplementation(
-  () => {},
-  configDefaultTestExpectedEnabled
+test("defaultError", getConfigTestImplementation(
+  { "default": "error" },
+  configTestFiles,
+  configTestExpected13511
 ));
 
-test("disableRules", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/no_first_line_heading.md"
-    ],
-    "config": {
-      "default": true,
-      "MD019": false,
-      "first-line-h1": false
-    },
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD018": [ 1 ]
-      },
-      "./test/no_first_line_heading.md": {}
-    };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+test("defaultWarning", getConfigTestImplementation(
+  // @ts-ignore
+  { "default": "warning" },
+  configTestFiles,
+  configTestExpected13511
+));
 
-test("enableRules", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "MD041": true,
-      "default": false,
-      "no-multiple-space-atx": true
-    },
-    "noInlineConfig": true,
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD019": [ 3, 5 ],
-        "MD041": [ 1 ]
-      },
-      "./test/first_heading_bad_atx.md": {
-        "MD041": [ 1 ]
-      }
-    };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+test("defaultOff", getConfigTestImplementation(
+  // @ts-ignore
+  { "default": "off" },
+  configTestFiles,
+  configTestExpected13511
+));
 
-test("enableRulesMixedCase", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "Md041": true,
-      "DeFaUlT": false,
-      "nO-mUlTiPlE-sPaCe-AtX": true
-    },
-    "noInlineConfig": true,
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD019": [ 3, 5 ],
-        "MD041": [ 1 ]
-      },
-      "./test/first_heading_bad_atx.md": {
-        "MD041": [ 1 ]
-      }
-    };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+test("disableRules", getConfigTestImplementation(
+  {
+    "default": true,
+    "MD019": false,
+    "first-line-h1": false,
+    "extra": false
+  },
+  configTestFiles,
+  configTestExpected1
+));
 
-test("disableTag", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "default": true,
-      "spaces": false
-    },
-    "noInlineConfig": true,
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD041": [ 1 ]
-      },
-      "./test/first_heading_bad_atx.md": {
-        "MD041": [ 1 ]
-      }
-    };
+test("disableRulesFalsy", getConfigTestImplementation(
+  {
+    "default": true,
     // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+    "MD019": 0,
+    // @ts-ignore
+    "first-line-h1": 0,
+    "extra": 0
+  },
+  configTestFiles,
+  configTestExpected1
+));
 
-test("enableTag", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "default": false,
-      "spaces": true,
-      "notatag": true
-    },
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD018": [ 1 ],
-        "MD019": [ 3, 5 ]
-      },
-      "./test/first_heading_bad_atx.md": {}
-    };
-    // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+test("enableRules", getConfigTestImplementation(
+  {
+    "MD041": true,
+    "default": false,
+    "no-multiple-space-atx": true,
+    "extra": true
+  },
+  configTestFiles,
+  configTestExpected3511
+));
 
-test("enableTagMixedCase", (t) => new Promise((resolve) => {
-  t.plan(2);
-  const options = {
-    "files": [
-      "./test/atx_heading_spacing.md",
-      "./test/first_heading_bad_atx.md"
-    ],
-    "config": {
-      "DeFaUlT": false,
-      "SpAcEs": true,
-      "NoTaTaG": true
-    },
-    "resultVersion": 0
-  };
-  lintAsync(options, function callback(err, actualResult) {
-    t.falsy(err);
-    const expectedResult = {
-      "./test/atx_heading_spacing.md": {
-        "MD018": [ 1 ],
-        "MD019": [ 3, 5 ]
-      },
-      "./test/first_heading_bad_atx.md": {}
-    };
+test("enableRulesMixedCase", getConfigTestImplementation(
+  {
+    "Md041": true,
+    "DeFaUlT": false,
+    "nO-mUlTiPlE-sPaCe-AtX": true,
+    "ExTrA": true
+  },
+  configTestFiles,
+  configTestExpected3511
+));
+
+test("enableRulesTruthy", getConfigTestImplementation(
+  {
     // @ts-ignore
-    t.deepEqual(actualResult, expectedResult, "Undetected issues.");
-    resolve();
-  });
-}));
+    "MD041": 1,
+    "default": false,
+    // @ts-ignore
+    "no-multiple-space-atx": 1,
+    "extra": 1
+  },
+  configTestFiles,
+  configTestExpected3511
+));
+
+test("enableRulesString", getConfigTestImplementation(
+  {
+    "MD041": "error",
+    "default": false,
+    "no-multiple-space-atx": "error",
+    "extra": "error"
+  },
+  configTestFiles,
+  configTestExpected3511
+));
+
+test("enableRulesEmptyObject", getConfigTestImplementation(
+  {
+    "MD041": {},
+    "default": false,
+    // @ts-ignore
+    "no-multiple-space-atx": {},
+    "extra": {}
+  },
+  configTestFiles,
+  configTestExpected3511
+));
+
+test("disableTag", getConfigTestImplementation(
+  {
+    "default": true,
+    "spaces": false,
+    "extra": false
+  },
+  configTestFiles,
+  configTestExpected11
+));
+
+test("disableTagFalsy", getConfigTestImplementation(
+  {
+    "default": true,
+    // @ts-ignore
+    "spaces": 0,
+    "extra": 0
+  },
+  configTestFiles,
+  configTestExpected11
+));
+
+test("enableTag", getConfigTestImplementation(
+  {
+    "default": false,
+    "spaces": true,
+    "extra": true
+  },
+  configTestFiles,
+  configTestExpected135
+));
+
+test("enableTagMixedCase", getConfigTestImplementation(
+  {
+    "DeFaUlT": false,
+    "SpAcEs": true,
+    "ExTrA": true
+  },
+  configTestFiles,
+  configTestExpected135
+));
+
+test("enableTagTruthy", getConfigTestImplementation(
+  {
+    "default": false,
+    // @ts-ignore
+    "spaces": 1,
+    "extra": 1
+  },
+  configTestFiles,
+  configTestExpected135
+));
+
+test("enableTagString", getConfigTestImplementation(
+  {
+    "default": false,
+    "spaces": "error",
+    "extra": "error"
+  },
+  configTestFiles,
+  configTestExpected135
+));
 
 test("styleFiles", async(t) => {
   t.plan(8);
