@@ -170,16 +170,18 @@ function normalizeLintResults(results) {
  * Gets a Configuration value test implementation.
  *
  * @param {Configuration} config Configuration object.
- * @param {string[]} files List of files.
  * @param {NormalizedLintResults} expected Expected result.
  * @returns {ImplementationFn} Test implementation.
  */
-function getConfigTestImplementation(config, files, expected) {
+function getConfigTestImplementation(config, expected) {
   return async(t) => {
     t.plan(1);
     const options = {
       config,
-      files,
+      "files": [
+        "./test/atx_heading_spacing.md",
+        "./test/first_heading_bad_atx.md"
+      ],
       "noInlineConfig": true
     };
     const actual = await lintPromise(options);
@@ -187,10 +189,6 @@ function getConfigTestImplementation(config, files, expected) {
   };
 }
 
-const configTestFiles = [
-  "./test/atx_heading_spacing.md",
-  "./test/first_heading_bad_atx.md"
-];
 const configTestExpected = {
   "./test/atx_heading_spacing.md": [],
   "./test/first_heading_bad_atx.md": []
@@ -241,53 +239,45 @@ const configTestExpected13511 = {
 
 test("defaultUnset", getConfigTestImplementation(
   {},
-  configTestFiles,
   configTestExpected13511
 ));
 
 test("defaultTrue", getConfigTestImplementation(
   { "default": true },
-  configTestFiles,
   configTestExpected13511
 ));
 
 test("defaultFalse", getConfigTestImplementation(
   { "default": false },
-  configTestFiles,
   configTestExpected
 ));
 
 test("defaultTruthy", getConfigTestImplementation(
   // @ts-ignore
   { "default": 1 },
-  configTestFiles,
   configTestExpected13511
 ));
 
 test("defaultFalsy", getConfigTestImplementation(
   // @ts-ignore
   { "default": 0 },
-  configTestFiles,
   configTestExpected
 ));
 
 test("defaultError", getConfigTestImplementation(
   { "default": "error" },
-  configTestFiles,
   configTestExpected13511
 ));
 
 test("defaultWarning", getConfigTestImplementation(
   // @ts-ignore
   { "default": "warning" },
-  configTestFiles,
   configTestExpected13511
 ));
 
 test("defaultOff", getConfigTestImplementation(
   // @ts-ignore
   { "default": "off" },
-  configTestFiles,
   configTestExpected13511
 ));
 
@@ -298,7 +288,6 @@ test("disableRules", getConfigTestImplementation(
     "first-line-h1": false,
     "extra": false
   },
-  configTestFiles,
   configTestExpected1
 ));
 
@@ -311,7 +300,6 @@ test("disableRulesFalsy", getConfigTestImplementation(
     "first-line-h1": 0,
     "extra": 0
   },
-  configTestFiles,
   configTestExpected1
 ));
 
@@ -322,7 +310,6 @@ test("enableRules", getConfigTestImplementation(
     "no-multiple-space-atx": true,
     "extra": true
   },
-  configTestFiles,
   configTestExpected3511
 ));
 
@@ -333,7 +320,6 @@ test("enableRulesMixedCase", getConfigTestImplementation(
     "nO-mUlTiPlE-sPaCe-AtX": true,
     "ExTrA": true
   },
-  configTestFiles,
   configTestExpected3511
 ));
 
@@ -346,7 +332,6 @@ test("enableRulesTruthy", getConfigTestImplementation(
     "no-multiple-space-atx": 1,
     "extra": 1
   },
-  configTestFiles,
   configTestExpected3511
 ));
 
@@ -357,7 +342,6 @@ test("enableRulesString", getConfigTestImplementation(
     "no-multiple-space-atx": "error",
     "extra": "error"
   },
-  configTestFiles,
   configTestExpected3511
 ));
 
@@ -369,7 +353,6 @@ test("enableRulesEmptyObject", getConfigTestImplementation(
     "no-multiple-space-atx": {},
     "extra": {}
   },
-  configTestFiles,
   configTestExpected3511
 ));
 
@@ -379,7 +362,6 @@ test("disableTag", getConfigTestImplementation(
     "spaces": false,
     "extra": false
   },
-  configTestFiles,
   configTestExpected11
 ));
 
@@ -390,7 +372,6 @@ test("disableTagFalsy", getConfigTestImplementation(
     "spaces": 0,
     "extra": 0
   },
-  configTestFiles,
   configTestExpected11
 ));
 
@@ -400,7 +381,6 @@ test("enableTag", getConfigTestImplementation(
     "spaces": true,
     "extra": true
   },
-  configTestFiles,
   configTestExpected135
 ));
 
@@ -410,7 +390,6 @@ test("enableTagMixedCase", getConfigTestImplementation(
     "SpAcEs": true,
     "ExTrA": true
   },
-  configTestFiles,
   configTestExpected135
 ));
 
@@ -421,7 +400,6 @@ test("enableTagTruthy", getConfigTestImplementation(
     "spaces": 1,
     "extra": 1
   },
-  configTestFiles,
   configTestExpected135
 ));
 
@@ -431,7 +409,6 @@ test("enableTagString", getConfigTestImplementation(
     "spaces": "error",
     "extra": "error"
   },
-  configTestFiles,
   configTestExpected135
 ));
 
